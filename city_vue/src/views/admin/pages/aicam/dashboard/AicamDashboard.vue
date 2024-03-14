@@ -8,7 +8,7 @@ export default {
       // 取得原始資料
       getRoadList: [
         {
-          id: 1,
+          id: 173,
           cameraName: "中華西路民生路口",
           status: "火焰煙霧",
           rtsp: "https://images.unsplash.com/photo-1616595286596-f0b561c76bc5?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -50,33 +50,50 @@ export default {
           isClick: false,
         },
       ],
-      // 加上是否點擊
+      // 深層拷貝後真正使用的資料，加上是否active
       roadList: [],
+      // 篩選項目
+      filterProject: "all",
+      // 篩選後
+      filterList: [],
       // 目前選擇的攝影機物件資料
       activeCam: "",
       // 切換的id
       switchRoadId: "",
       // 讀取畫面中
       loadingCam: true,
+      // 使用者輸入的篩選文字
+      searchText: "",
 
       // Frigate 各鏡頭狀態
       frigatestats: "",
     };
   },
   watch: {
-    // async activeCam() {
-    //   const vm = this;
-    //   console.log("變動");
-    //   console.log(vm.activeCam);
-    // },
+    filterProject() {
+      const vm = this;
+      vm.filterByItem();
+    },
+    searchText() {
+      const vm = this;
+      vm.filterByItem();
+    },
   },
   methods: {
     // 取得資料
-    getRoadData() {
+    async getRoadData() {
       console.log("getRoadData重取資料");
       const vm = this;
       vm.roadList = JSON.parse(JSON.stringify(vm.getRoadList));
+
       // 合併目前點擊的項目
+      vm.combine();
+
+      vm.filterByItem();
+    },
+    // 合併目前點擊的項目
+    combine() {
+      const vm = this;
       vm.roadList?.forEach((item) => {
         if (vm.activeCam === "") {
           vm.activeCam = item;
@@ -88,15 +105,25 @@ export default {
     },
     // 切換鏡頭
     switchActiveCam(roadId) {
+      console.log("switchActiveCam");
       const vm = this;
       // 呈現 loading 狀態
-      vm.loadingCam = true;
+      // vm.loadingCam = true;
       vm.roadList.forEach((item) => {
         if (item.id === roadId) {
           item.isClick = true;
           // 當前選擇
           vm.activeCam = item;
           vm.switchRoadId = item.id;
+        } else {
+          item.isClick = false;
+        }
+      });
+
+      // filter 也要同步
+      vm.filterList.forEach((item) => {
+        if (item.id === roadId) {
+          item.isClick = true;
         } else {
           item.isClick = false;
         }
@@ -120,25 +147,55 @@ export default {
     },
     // 當前鏡頭是否有畫面
     isCamAlive() {
+      console.log("isCamAlive");
       const vm = this;
       // 尚未顯示再判斷
-      if (vm.frigatestats[`camera${vm.switchRoadId}`]?.camera_fps === 0) {
-        // 尚未出現畫面
-        console.log("尚未出現畫面");
-        vm.loadingCam = true;
+      if (vm.frigatestats[`camera${vm.switchRoadId}`]) {
+        if (vm.frigatestats[`camera${vm.switchRoadId}`]?.camera_fps === 0) {
+          // 尚未出現畫面
+          console.log("尚未出現畫面");
+          vm.loadingCam = true;
+        } else {
+          // 顯示畫面
+          console.log("顯示畫面");
+          vm.loadingCam = false;
+        }
       } else {
-        // 顯示畫面
-        console.log("顯示畫面");
-        vm.loadingCam = false;
+        vm.loadingCam = true;
       }
     },
+    // 依項目篩選
+    filterByItem() {
+      console.log("filterByItem");
+      const vm = this;
+      if (vm.filterProject === "fire") {
+        vm.filterList = vm.roadList.filter(
+          (item) => item.status === "火焰煙霧"
+        );
+      } else if (vm.filterProject === "water") {
+        vm.filterList = vm.roadList.filter((item) => item.status === "淹水");
+      } else if (vm.filterProject === "people") {
+        vm.filterList = vm.roadList.filter(
+          (item) => item.status === "民眾路倒"
+        );
+      } else {
+        // 全部
+        vm.filterList = JSON.parse(JSON.stringify(vm.roadList));
+      }
+
+      // 依文字篩選
+      vm.filterList = vm.filterList.filter((item) =>
+        item.cameraName.match(vm.searchText)
+      );
+    },
   },
-  mounted() {
+  async mounted() {
     const vm = this;
-    vm.getRoadData();
-    vm.getFrigateStats();
-    window.getRoadListInterval = setInterval(vm.getRoadData, 2000);
-    window.getFrigateStatsInterval = setInterval(vm.getFrigateStats, 1000);
+    await vm.getRoadData();
+    await vm.getFrigateStats();
+
+    window.getRoadListInterval = setInterval(vm.getRoadData, 5000);
+    window.getFrigateStatsInterval = setInterval(vm.getFrigateStats, 5000);
   },
   unmounted() {
     console.log("unmounted！");
@@ -150,7 +207,6 @@ export default {
 
 <template>
   <div>
-    {{ alreadyDisplayCam }}
     <div class="row g-0">
       <!-- 選單列表 -->
       <div class="col-12 col-md-4">
@@ -163,6 +219,7 @@ export default {
           <div class="p-2">
             <input
               type="text"
+              v-model="searchText"
               placeholder="請輸入關鍵字"
               class="ps-5 py-2 rounded-3 w-100"
               style="padding-top: 12px !important"
@@ -173,29 +230,69 @@ export default {
         <!-- 選擇置頂 -->
         <div>
           <div class="row g-0 p-2 border-bottom">
-            <div class="col text-center cursor-pointer">
-              <i class="icon-sort-all-active icons">
+            <div
+              class="col text-center cursor-pointer"
+              @click="filterProject = 'all'"
+            >
+              <i
+                class="icons"
+                :class="[
+                  filterProject === 'all'
+                    ? 'icon-sort-all-active'
+                    : 'icon-sort-all unactive',
+                ]"
+              >
                 <i class="path1"></i>
                 <i class="path2"></i>
                 <i class="path3"></i>
               </i>
             </div>
-            <div class="col text-center cursor-pointer">
-              <i class="icon-sort-fire icons unactive">
+            <div
+              class="col text-center cursor-pointer"
+              @click="filterProject = 'fire'"
+            >
+              <i
+                class="icons"
+                :class="[
+                  filterProject === 'fire'
+                    ? 'icon-sort-fire-active'
+                    : 'icon-sort-fire unactive',
+                ]"
+              >
                 <i class="path1"></i>
                 <i class="path2"></i>
                 <i class="path3"></i>
               </i>
             </div>
-            <div class="col text-center cursor-pointer">
-              <i class="icon-sort-water icons unactive">
+            <div
+              class="col text-center cursor-pointer"
+              @click="filterProject = 'water'"
+            >
+              <i
+                class="icons"
+                :class="[
+                  filterProject === 'water'
+                    ? 'icon-sort-water-active'
+                    : 'icon-sort-water unactive',
+                ]"
+              >
                 <i class="path1"></i>
                 <i class="path2"></i>
                 <i class="path3"></i>
               </i>
             </div>
-            <div class="col text-center cursor-pointer">
-              <i class="icon-sort-people icons unactive">
+            <div
+              class="col text-center cursor-pointer"
+              @click="filterProject = 'people'"
+            >
+              <i
+                class="icons"
+                :class="[
+                  filterProject === 'people'
+                    ? 'icon-sort-people-active'
+                    : 'icon-sort-people unactive',
+                ]"
+              >
                 <i class="path1"></i>
                 <i class="path2"></i>
                 <i class="path3"></i>
@@ -217,7 +314,7 @@ export default {
                 </tr>
               </thead>
               <tbody>
-                <template v-for="(road, i) in roadList" :key="i">
+                <template v-for="(road, i) in filterList" :key="i">
                   <tr
                     class="cursor-pointer"
                     :class="[
@@ -256,14 +353,15 @@ export default {
       <!-- 畫面 -->
       <div class="col-12 col-md-8">
         <div class="row g-0" style="height: calc(100vh - 280px)">
+          <!-- :class="{ 'd-none': loadingCam }" -->
           <img
             :src="activeCam.rtsp"
             alt=""
             class="h-100 w-auto"
-            :class="{ 'd-none': loadingCam }"
             style="object-fit: contain"
           />
-          <div :class="{ 'd-none': !loadingCam }">
+          <!-- :class="{ 'd-none': !loadingCam }" -->
+          <div class="d-none">
             <div
               class="d-flex flex-column justify-content-center align-items-center w-100 h-100"
             >
