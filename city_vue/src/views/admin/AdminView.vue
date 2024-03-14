@@ -28,14 +28,28 @@ export default {
       style="height: 70px"
     >
       <div class="d-flex">
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center position-relative whiteLine">
           <LogoIcon style="font-size: 42px"></LogoIcon>
-          <h2 class="fs-5 m-0 ms-2 fw-bold">AI 精準消防平台</h2>
+          <h2 class="fs-5 m-0 ms-2 fw-bold" style="padding-right: 16px">
+            AI 精準消防平台
+          </h2>
         </div>
-        <span class="h-100 bg-white" style="width: 1px"></span>
-        <select v-model="selectedOption" @change="handleChange">
-          <option value="aicam">AI 監視器影像辨識系統</option>
-          <option value="radio">任務無線電辨識系統</option>
+        <select
+          v-model="selectedOption"
+          @change="handleChange"
+          style="
+            border: unset;
+            background-color: unset;
+            color: white;
+            margin-left: 16px;
+          "
+        >
+          <option value="aicam" style="color: #222222">
+            AI 監視器影像辨識系統
+          </option>
+          <option value="radio" style="color: #222222">
+            任務無線電辨識系統
+          </option>
         </select>
       </div>
       <div>帳號設定</div>
@@ -44,3 +58,15 @@ export default {
 
   <RouterView></RouterView>
 </template>
+
+<style scoped>
+.whiteLine::after {
+  content: "";
+  position: absolute;
+  right: 0px;
+  top: 12px;
+  width: 2px;
+  height: 50%;
+  background: white;
+}
+</style>

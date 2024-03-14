@@ -374,7 +374,8 @@ export default {
         </div>
 
         <div class="row g-0">
-          <div class="col d-flex p-2">
+          <!-- 正常狀態 -->
+          <div class="col d-flex p-2" v-if="activeCam.status != '無異常'">
             <div class="mx-2 w-100 d-flex">
               <div
                 class="accepted cursor-pointer w-100 text-center me-2 fs-3 d-flex align-items-center justify-content-center rounded-3"
@@ -393,9 +394,64 @@ export default {
               </div>
             </div>
           </div>
-          <div class="col">
+
+          <!-- 異常狀態 -->
+          <div class="col d-flex p-2" v-else>
+            <div class="mx-2 w-100 d-flex flex-nowrap">
+              <div
+                class="d-flex flex-column justify-content-center align-items-center px-3"
+              >
+                <div class="text-center" style="font-size: 12px">
+                  今日累計<span style="white-space: nowrap">通報數</span>
+                </div>
+                <div class="fs-1 fw-bold en">10</div>
+              </div>
+              <div
+                class="d-flex flex-column justify-content-center align-items-center px-3"
+              >
+                <div class="text-center" style="font-size: 12px">
+                  今日異常<span style="white-space: nowrap">受理數</span>
+                </div>
+                <div class="fs-1 fw-bold en">4</div>
+              </div>
+              <div
+                class="d-flex flex-column justify-content-center align-items-center px-3"
+              >
+                <div class="text-center" style="font-size: 12px">
+                  今日忽略<span style="white-space: nowrap">通報數</span>
+                </div>
+                <div class="fs-1 fw-bold en">6</div>
+              </div>
+              <div
+                class="d-flex flex-column justify-content-center align-items-center px-3"
+              >
+                <div class="text-center" style="font-size: 12px">
+                  今日回報<span style="white-space: nowrap">誤判數</span>
+                </div>
+                <div class="fs-1 fw-bold en">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 正常狀態 -->
+          <div class="col" v-if="activeCam.status === '無異常'">
             <div class="p-2">
-              <div class="aiNotifyTitle d-flex p-2 text-black">
+              <div class="d-flex p-2 text-black aiNotifyTitleNormal">
+                <i class="icon-cctv-info fs-2" style="margin-left: -6px"></i>
+              </div>
+              <div class="aiNotifyContent py-2 px-3">
+                <div>影像時間：<span>2023-12-29 15:03:56</span></div>
+                <div>
+                  影像來源：<span>{{ activeCam.cameraName }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 異常狀態 -->
+          <div class="col" v-else>
+            <div class="p-2">
+              <div class="d-flex p-2 text-black aiNotifyTitle">
                 <i class="icon-cctv-ai fs-2" style="margin-left: -6px"></i>
               </div>
               <div class="aiNotifyContent py-2 px-3">
@@ -404,7 +460,9 @@ export default {
                   <div class="text-warning"><b>25</b>sec</div>
                 </div>
                 <div>辨識時間：<span>2023-12-29 15:03:56</span></div>
-                <div>影像來源：<span>彰化縣中山路一段中華路交叉口</span></div>
+                <div>
+                  影像來源：<span>{{ activeCam.cameraName }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -465,10 +523,15 @@ table.camListTable {
   background: linear-gradient(346deg, #f1022d, $gray-900);
 }
 
-// AI影像辨識通報
+// AI影像辨識通報 - 異常
 .aiNotifyTitle {
   border-radius: 8px 8px 0 0;
   background: linear-gradient(0deg, #ffea00, #bfaf01);
+}
+// AI影像辨識通報 - 正常
+.aiNotifyTitleNormal {
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(0deg, #999999, #757575);
 }
 
 .aiNotifyContent {
