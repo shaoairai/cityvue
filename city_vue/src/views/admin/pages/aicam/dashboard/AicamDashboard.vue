@@ -1,0 +1,409 @@
+<script>
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      getRoadListInterval: "",
+      // 取得原始資料
+      getRoadList: [
+        {
+          id: 1,
+          cameraName: "中華西路民生路口",
+          status: "火焰煙霧",
+          rtsp: "https://images.unsplash.com/photo-1616595286596-f0b561c76bc5?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          isClick: false,
+        },
+        {
+          id: 2,
+          cameraName: "中山路三段自由路交叉口",
+          status: "民眾路倒",
+          rtsp: "https://images.unsplash.com/photo-1630244024081-dc4039254a46?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          isClick: false,
+        },
+        {
+          id: 3,
+          cameraName: "中山路一段中華路交叉口",
+          status: "淹水",
+          rtsp: "https://images.unsplash.com/photo-1571474004502-c1def214ac6d?q=80&w=1931&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          isClick: false,
+        },
+        {
+          id: 4,
+          cameraName: "中山路二段花壇街口",
+          status: "無異常",
+          rtsp: "https://images.unsplash.com/photo-1552993873-0dd1110e025f?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          isClick: false,
+        },
+        {
+          id: 5,
+          cameraName: "中山路二段勤益街口",
+          status: "無異常",
+          rtsp: "https://images.unsplash.com/photo-1609147110688-83b5fd1288e8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          isClick: false,
+        },
+        {
+          id: 172,
+          cameraName: "智慧城市展",
+          status: "無異常",
+          rtsp: "https://iseekwebfrigate.intemotech.com/api/camera172?fps=30&h=1080&bbox=1&motion=1&regions=1&timestamp=1",
+          isClick: false,
+        },
+      ],
+      // 加上是否點擊
+      roadList: [],
+      // 目前選擇的攝影機物件資料
+      activeCam: "",
+      // 切換的id
+      switchRoadId: "",
+      // 讀取畫面中
+      loadingCam: true,
+
+      // Frigate 各鏡頭狀態
+      frigatestats: "",
+    };
+  },
+  watch: {
+    // async activeCam() {
+    //   const vm = this;
+    //   console.log("變動");
+    //   console.log(vm.activeCam);
+    // },
+  },
+  methods: {
+    // 取得資料
+    getRoadData() {
+      console.log("getRoadData重取資料");
+      const vm = this;
+      vm.roadList = JSON.parse(JSON.stringify(vm.getRoadList));
+      // 合併目前點擊的項目
+      vm.roadList?.forEach((item) => {
+        if (vm.activeCam === "") {
+          vm.activeCam = item;
+        }
+        if (item.id === vm.activeCam.id) {
+          item.isClick = true;
+        }
+      });
+    },
+    // 切換鏡頭
+    switchActiveCam(roadId) {
+      const vm = this;
+      // 呈現 loading 狀態
+      vm.loadingCam = true;
+      vm.roadList.forEach((item) => {
+        if (item.id === roadId) {
+          item.isClick = true;
+          // 當前選擇
+          vm.activeCam = item;
+          vm.switchRoadId = item.id;
+        } else {
+          item.isClick = false;
+        }
+      });
+    },
+    // 取得 Frigate 鏡頭數據
+    async getFrigateStats() {
+      const vm = this;
+      const config = {
+        method: "GET",
+        url: "./frigatestats",
+      };
+      await axios(config)
+        .then((res) => {
+          vm.frigatestats = res.data.cameras;
+          vm.isCamAlive();
+        })
+        .catch((err) => {
+          console.log(err.response);
+        });
+    },
+    // 當前鏡頭是否有畫面
+    isCamAlive() {
+      const vm = this;
+      // 尚未顯示再判斷
+      if (vm.frigatestats[`camera${vm.switchRoadId}`]?.camera_fps === 0) {
+        // 尚未出現畫面
+        console.log("尚未出現畫面");
+        vm.loadingCam = true;
+      } else {
+        // 顯示畫面
+        console.log("顯示畫面");
+        vm.loadingCam = false;
+      }
+    },
+  },
+  mounted() {
+    const vm = this;
+    vm.getRoadData();
+    vm.getFrigateStats();
+    window.getRoadListInterval = setInterval(vm.getRoadData, 2000);
+    window.getFrigateStatsInterval = setInterval(vm.getFrigateStats, 1000);
+  },
+  unmounted() {
+    console.log("unmounted！");
+    clearInterval(window.getRoadListInterval);
+    clearInterval(window.getFrigateStatsInterval);
+  },
+};
+</script>
+
+<template>
+  <div>
+    {{ alreadyDisplayCam }}
+    <div class="row g-0">
+      <!-- 選單列表 -->
+      <div class="col-12 col-md-4">
+        <!-- 搜尋 -->
+        <div class="position-relative">
+          <i
+            class="icon-search position-absolute"
+            style="top: 20px; left: 24px; color: #222222; font-size: 24px"
+          ></i>
+          <div class="p-2">
+            <input
+              type="text"
+              placeholder="請輸入關鍵字"
+              class="ps-5 py-2 rounded-3 w-100"
+              style="padding-top: 12px !important"
+            />
+          </div>
+        </div>
+
+        <!-- 選擇置頂 -->
+        <div>
+          <div class="row g-0 p-2 border-bottom">
+            <div class="col text-center cursor-pointer">
+              <i class="icon-sort-all-active icons">
+                <i class="path1"></i>
+                <i class="path2"></i>
+                <i class="path3"></i>
+              </i>
+            </div>
+            <div class="col text-center cursor-pointer">
+              <i class="icon-sort-fire icons unactive">
+                <i class="path1"></i>
+                <i class="path2"></i>
+                <i class="path3"></i>
+              </i>
+            </div>
+            <div class="col text-center cursor-pointer">
+              <i class="icon-sort-water icons unactive">
+                <i class="path1"></i>
+                <i class="path2"></i>
+                <i class="path3"></i>
+              </i>
+            </div>
+            <div class="col text-center cursor-pointer">
+              <i class="icon-sort-people icons unactive">
+                <i class="path1"></i>
+                <i class="path2"></i>
+                <i class="path3"></i>
+              </i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 攝影機列表 -->
+        <div>
+          <div style="height: calc(100vh - 269px); overflow: auto">
+            <table class="w-100 camListTable">
+              <thead>
+                <tr>
+                  <th class="p-2 text-center">序號</th>
+                  <th class="p-2 text-center">攝影機名稱</th>
+                  <th class="p-2 text-center">辨識狀態</th>
+                  <th class="p-2 text-center"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="(road, i) in roadList" :key="i">
+                  <tr
+                    class="cursor-pointer"
+                    :class="[
+                      road.status === '無異常' && road.isClick
+                        ? 'normalClick'
+                        : road.status === '無異常' && !road.isClick
+                        ? 'normalUnclick'
+                        : road.status !== '無異常' && road.isClick
+                        ? 'abnormalClick'
+                        : 'abnormalUnclick',
+                    ]"
+                    style="user-select: none"
+                    @click="switchActiveCam(road.id)"
+                  >
+                    <td class="px-2 py-4 text-center">{{ i + 1 }}</td>
+                    <td class="px-2 py-4">{{ road.cameraName }}</td>
+                    <td class="px-2 py-4">{{ road.status }}</td>
+                    <td class="px-2 py-4">
+                      <img
+                        src="@/assets/img/triangle.svg"
+                        :class="{ invisible: !road.isClick }"
+                      />
+                      <!-- <div
+                        :class="[road.isClick ? 'activeIcon bg-warning' : '']"
+                        style="width: 12px; height: 12px"
+                      ></div> -->
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 畫面 -->
+      <div class="col-12 col-md-8">
+        <div class="row g-0" style="height: calc(100vh - 280px)">
+          <img
+            :src="activeCam.rtsp"
+            alt=""
+            class="h-100 w-auto"
+            :class="{ 'd-none': loadingCam }"
+            style="object-fit: contain"
+          />
+          <div :class="{ 'd-none': !loadingCam }">
+            <div
+              class="d-flex flex-column justify-content-center align-items-center w-100 h-100"
+            >
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <div class="pt-3 fs-5">正在讀取畫面</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-0">
+          <div class="col d-flex p-2">
+            <div class="mx-2 w-100 d-flex">
+              <div
+                class="accepted cursor-pointer w-100 text-center me-2 fs-3 d-flex align-items-center justify-content-center rounded-3"
+              >
+                回報<br />已受理
+              </div>
+              <div
+                class="ignore cursor-pointer w-100 text-center me-2 fs-3 d-flex align-items-center justify-content-center rounded-3"
+              >
+                忽略<br />該通報
+              </div>
+              <div
+                class="respond cursor-pointer w-100 text-center fs-3 d-flex align-items-center justify-content-center rounded-3"
+              >
+                回報<br />AI誤判
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="p-2">
+              <div class="aiNotifyTitle d-flex p-2 text-black">
+                <i class="icon-cctv-ai fs-2" style="margin-left: -6px"></i>
+              </div>
+              <div class="aiNotifyContent py-2 px-3">
+                <div class="d-flex justify-content-between">
+                  <div>辨識事件：<span>火焰煙霧</span></div>
+                  <div class="text-warning"><b>25</b>sec</div>
+                </div>
+                <div>辨識時間：<span>2023-12-29 15:03:56</span></div>
+                <div>影像來源：<span>彰化縣中山路一段中華路交叉口</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+@import "@/assets/all.scss";
+
+.icons {
+  font-size: 64px;
+}
+
+.unactive {
+  opacity: 0.3;
+}
+
+// table 樣式
+table.camListTable {
+  thead {
+    position: sticky;
+    top: 0px;
+    background: $gray-900;
+    z-index: 1;
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: $gray-600;
+    }
+  }
+}
+
+// 四種狀態
+// 異常通報未回報
+.abnormalUnclick {
+  background: #3d020d;
+}
+
+// 正常運作or異常通報已回報
+.normalUnclick {
+  background: $gray-900;
+}
+
+// 正常運作被選取
+.normalClick {
+  background: $success;
+}
+
+// 異常通報被選取
+.abnormalClick {
+  background: linear-gradient(346deg, #f1022d, $gray-900);
+}
+
+// AI影像辨識通報
+.aiNotifyTitle {
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(0deg, #ffea00, #bfaf01);
+}
+
+.aiNotifyContent {
+  border-radius: 0 0 8px 8px;
+  background: $gray-800;
+}
+
+// 使用者點擊的按鈕
+// 回報已受理
+.accepted {
+  color: $success;
+  border: 2px solid $success;
+  &:hover {
+    color: $white;
+    background: $success;
+  }
+}
+// 忽略此通報
+.ignore {
+  color: $warning;
+  border: 2px solid $warning;
+  &:hover {
+    color: $black;
+    background: $warning;
+  }
+}
+// 回報AI誤判
+.respond {
+  color: $danger;
+  border: 2px solid $danger;
+  &:hover {
+    color: $white;
+    background: $danger;
+  }
+}
+</style>

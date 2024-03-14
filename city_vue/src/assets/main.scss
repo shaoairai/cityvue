@@ -1,0 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&display=swap");
+
+body {
+  font-family: "Noto Sans TC", sans-serif;
+  background: $gray-900;
+  color: $white;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.user-select-none {
+  user-select: none;
+}
+
+i > i[class^="path"] {
+  font-style: normal;
+}
+
+.border-bottom {
+  border-bottom: 1px solid $gray-500 !important;
+}
